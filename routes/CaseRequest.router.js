@@ -8,7 +8,7 @@ const router = express.Router();
 router.post("/create", verifyToken, createCaseRequest);
 
 //create new case request
-router.update("/accept/:id", verifyToken, acceptOrRejectCaseRequest);
+router.put("/accept/:id", verifyToken, acceptOrRejectCaseRequest);
 
 //create new case request
 router.get("/lawyer/all", verifyToken, getAllCasesRequestToLawyer);
