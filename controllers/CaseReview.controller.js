@@ -1,5 +1,6 @@
-const CaseReview = require("../models/CaseReview");
+const CaseReview = require("../models/CaseReview.model");
 const User = require("../models/User.model");
+
 
 // Create a new case review
 const createCaseReview = async (req, res, next) => {
