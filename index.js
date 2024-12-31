@@ -16,6 +16,7 @@ const documentRouter = require("./routes/Document.router")
 const notificationRouter = require("./routes/Notification.router")
 const caseTypeRouter = require("./routes/CaseType.router")
 const caseRequestRouter = require("./routes/CaseRequest.router")
+const caseReviewRouter = require("./routes/CaseReview.router")
 
 
 
@@ -71,6 +72,7 @@ app.use("/api/document", documentRouter)
 app.use("/api/notification", notificationRouter)
 app.use("/api/case-type", caseTypeRouter)
 app.use("/api/case-request", caseRequestRouter)
+app.use("/api/case-review", caseReviewRouter)
 
 
 server.listen(port, async () => {
