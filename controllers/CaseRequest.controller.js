@@ -144,6 +144,53 @@ const getAllCasesRequestToLawyer = async (req, res, next) => {
 };
 
 // Get all cases request
+const getAllCasesRequestToUser = async (req, res, next) => {
+    try {
+        const userId = req.user.userId; // Get logged-in user's ID from the request
+
+        if (!userId) {
+            return res.status(401).json({
+                status: "error",
+                message: "Unauthorized access. Please log in and try again.",
+            });
+        }
+
+
+        // Build the query dynamically
+        const query = { requestBy: userId, isDelete: false, isTrash: false };
+
+        // Fetch cases based on the query
+        const cases = await CaseRequest.find(query).sort({ updatedAt: -1 });
+
+        if (!cases || cases.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No cases found",
+            });
+        }
+
+        // Calculate statistics
+        const totalCases = cases.length;
+        const activeCases = cases.filter((c) => c.isActive).length;
+        const rejectedCases = cases.filter((c) => c.isReject).length;
+        const acceptCases = cases.filter((c) => c.isAccept).length;
+
+        return res.status(200).json({
+            message: "All cases request fetched successfully",
+            data: cases,
+            stats: {
+                totalCases,
+                activeCases,
+                rejectedCases,
+                acceptCases
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Get all cases request
 const getAllCasesRequestController = async (req, res, next) => {
     try {
         const userId = req.user.userId;
@@ -204,6 +251,6 @@ module.exports = {
     acceptOrRejectCaseRequest,
     getAllCasesRequestToLawyer,
     getAllCasesRequestController,
-    getCaseRequestByIdController
-
+    getCaseRequestByIdController,
+    getAllCasesRequestToUser
 };

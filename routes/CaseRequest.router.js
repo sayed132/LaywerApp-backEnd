@@ -1,6 +1,6 @@
 const express = require("express");
 const verifyToken = require("../middlewares/verifyToken");
-const { createCaseRequest, acceptOrRejectCaseRequest, getAllCasesRequestToLawyer, getCaseRequestByIdController, getAllCasesRequestController } = require("../controllers/CaseRequest.controller");
+const { createCaseRequest, acceptOrRejectCaseRequest, getAllCasesRequestToLawyer, getCaseRequestByIdController, getAllCasesRequestController, getAllCasesRequestToUser } = require("../controllers/CaseRequest.controller");
 
 const router = express.Router();
 
@@ -12,6 +12,9 @@ router.put("/accept/:id", verifyToken, acceptOrRejectCaseRequest);
 
 //create new case request
 router.get("/lawyer/all", verifyToken, getAllCasesRequestToLawyer);
+
+//create new case request
+router.get("/user/all", verifyToken, getAllCasesRequestToUser);
 
 //create new case request
 router.get("/all", verifyToken, getAllCasesRequestController);
