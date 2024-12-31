@@ -6,17 +6,17 @@ const User = require("../models/User.model");
 const createCaseReview = async (req, res, next) => {
     try {
         const requestBy = req.user.userId; // User creating the review
-        const updateData = req.body;
+        const { case: caseId, lawyer: lawyerId, description, ratings } = req.body;
 
         if (!requestBy) {
             return res.status(404).json({
                 status: "error",
-                message: "Your token expired or you are not logged in, please login and try again.",
+                message: "Your token expired or you are not logged in. Please login and try again.",
             });
         }
 
         // Validate ratings
-        if (!updateData?.ratings || updateData?.ratings < 1 || updateData?.ratings > 5) {
+        if (!ratings || ratings < 1 || ratings > 5) {
             return res.status(400).json({
                 status: "error",
                 message: "Ratings should be between 1 and 5.",
@@ -24,7 +24,7 @@ const createCaseReview = async (req, res, next) => {
         }
 
         // Find the lawyer being reviewed
-        const lawyer = await User.findById(updateData?.lawyer);
+        const lawyer = await User.findById(lawyerId);
         if (!lawyer || lawyer.role !== "lawyer") {
             return res.status(404).json({
                 status: "error",
@@ -35,17 +35,16 @@ const createCaseReview = async (req, res, next) => {
         // Create the review
         const caseReview = new CaseReview({
             reviewBy: requestBy,
-            case: updateData?.case,
-            lawyer: updateData?.lawyer,
-            description: updateData?.description,
-            ratings: updateData?.ratings,
+            case: caseId,
+            lawyer: lawyerId,
+            description: description || "", // Default to empty string if not provided
+            ratings,
         });
-
 
         await caseReview.save();
 
         // Add the rating to the lawyer's ratings array
-        lawyer.ratings.push(ratings);
+        lawyer.ratings.push(ratings.toString()); // Convert to string if needed
         await lawyer.save();
 
         return res.status(200).json({
@@ -56,6 +55,7 @@ const createCaseReview = async (req, res, next) => {
         next(error);
     }
 };
+
 
 //get review by user
 const getUserReviews = async (req, res, next) => {
