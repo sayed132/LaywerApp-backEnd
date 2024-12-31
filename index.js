@@ -15,6 +15,11 @@ const uploadRouter = require("./routes/UploadFile.router")
 const documentRouter = require("./routes/Document.router")
 const notificationRouter = require("./routes/Notification.router")
 const caseTypeRouter = require("./routes/CaseType.router")
+const caseRequestRouter = require("./routes/CaseRequest.router")
+
+
+
+
 
 const server = http.createServer(app);
 
@@ -65,6 +70,7 @@ app.use("/api/file", uploadRouter);
 app.use("/api/document", documentRouter)
 app.use("/api/notification", notificationRouter)
 app.use("/api/case-type", caseTypeRouter)
+app.use("/api/case-request", caseRequestRouter)
 
 
 server.listen(port, async () => {
