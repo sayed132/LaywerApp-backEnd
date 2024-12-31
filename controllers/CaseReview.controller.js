@@ -63,7 +63,7 @@ const getUserReviews = async (req, res, next) => {
         const userId = req.user.userId;
 
         const reviews = await CaseReview.find({ reviewBy: userId })
-            .populate("lawyer", "firstName lastName workTitle,ratings, profilePicture")
+            .populate("lawyer", "firstName lastName workTitle ratings profilePicture _id")
             .populate("case");
 
         if (!reviews || reviews.length === 0) {
@@ -94,7 +94,7 @@ const getAllReviews = async (req, res, next) => {
             });
         }
 
-        const reviews = await CaseReview.find({ isDelete: false, isTrash: false }).sort({ createdAt: -1 }).populate("lawyer", "firstName lastName workTitle,ratings, profilePicture").populate("case").populate("reviewBy", "firstName lastName workTitle, profilePicture");
+        const reviews = await CaseReview.find({ isDelete: false, isTrash: false }).sort({ createdAt: -1 }).populate("lawyer", "firstName lastName workTitle ratings profilePicture _id").populate("case").populate("reviewBy", "firstName lastName workTitle  profilePicture _id");
 
         if (!reviews || reviews.length === 0) {
             return res.status(404).json({
@@ -122,7 +122,7 @@ const getReviewByIdController = async (req, res, next) => {
             });
         }
 
-        const reviewData = await CaseReview.findById(id);
+        const reviewData = await CaseReview.findById(id).populate("lawyer", "firstName lastName workTitle ratings profilePicture _id").populate("case").populate("reviewBy", "firstName lastName workTitle profilePicture _id");
 
         if (!reviewData || reviewData.isDelete || reviewData.isTrash) {
             return res.status(404).json({

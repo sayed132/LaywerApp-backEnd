@@ -113,7 +113,8 @@ const getAllCasesRequestToLawyer = async (req, res, next) => {
         const query = { receivedBy: userId, isDelete: false, isTrash: false };
 
         // Fetch cases based on the query
-        const cases = await CaseRequest.find(query).sort({ updatedAt: -1 });
+        const cases = await CaseRequest.find(query).sort({ updatedAt: -1 }).populate("requestBy", "firstName lastName workTitle _id profilePicture email")
+            .populate("case").populate("receivedBy", "firstName, lastName workTitle ratings profilePicture _id email");
 
         if (!cases || cases.length === 0) {
             return res.status(404).json({
@@ -160,7 +161,9 @@ const getAllCasesRequestToUser = async (req, res, next) => {
         const query = { requestBy: userId, isDelete: false, isTrash: false };
 
         // Fetch cases based on the query
-        const cases = await CaseRequest.find(query).sort({ updatedAt: -1 });
+        const cases = await CaseRequest.find(query).sort({ updatedAt: -1 }).populate("requestBy", "firstName lastName workTitle _id profilePicture email")
+            .populate("case").populate("receivedBy", "firstName lastName workTitle ratings profilePicture _id email");
+
 
         if (!cases || cases.length === 0) {
             return res.status(404).json({
@@ -202,7 +205,9 @@ const getAllCasesRequestController = async (req, res, next) => {
             });
         }
 
-        const cases = await CaseRequest.find({ isDelete: false, isTrash: false }).sort({ createdAt: -1 });
+        const cases = await CaseRequest.find({ isDelete: false, isTrash: false }).sort({ createdAt: -1 }).populate("requestBy", "firstName lastName workTitle _id profilePicture email")
+            .populate("case").populate("receivedBy", "firstName lastName workTitle ratings profilePicture _id email");
+
 
         if (!cases || cases.length === 0) {
             return res.status(404).json({
@@ -230,7 +235,9 @@ const getCaseRequestByIdController = async (req, res, next) => {
             });
         }
 
-        const caseData = await CaseRequest.findById(id,);
+        const caseData = await CaseRequest.findById(id,).populate("requestBy", "firstName lastName workTitle _id profilePicture email")
+            .populate("case").populate("receivedBy", "firstName lastName workTitle ratings profilePicture _id email");
+
 
         if (!caseData || caseData.isDelete || caseData.isTrash) {
             return res.status(404).json({
