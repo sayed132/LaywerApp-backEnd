@@ -1,30 +1,63 @@
 const path = require("path");
 
 const Document = require("../models/Document.model");
+const Case = require("../models/Case.model");
 
-// Create a new case
 const createDocument = async (req, res, next) => {
     try {
         const userId = req.user.userId;
 
         if (!userId) {
-            return res.status(404).json({
+            return res.status(401).json({
                 status: "error",
                 message: "Unauthorized access. Please log in and try again.",
             });
         }
 
+        const caseId = req.body.case;
+        const filePath = req.body.filePath
+
+        // Validate caseId and filePath
+        if (!caseId || !filePath) {
+            return res.status(400).json({
+                status: "error",
+                message: "Case ID and file path are required.",
+            });
+        }
+
         // Extract file extension from filePath
-        const filePath = req.body.filePath;
-        const fileExt = filePath ? path.extname(filePath) : null;
+        const fileExt = path.extname(filePath);
 
-        // Add user and fileExt to the document data
-        const updateData = { ...req.body, user: userId, fileExt };
+        // Create the document
+        const newDocument = new Document({
+            user: userId,
+            case: caseId,
+            filePath,
+            fileExt,
+        });
 
-        const newDocument = new Document(updateData);
         await newDocument.save();
 
-        return res.status(200).json({ message: "Upload A New document successfully", data: newDocument });
+        // Find the associated case and update its caseFiles
+        const updatedCase = await Case.findByIdAndUpdate(
+            caseId,
+            {
+                $push: { caseFiles: { path: filePath } },
+            },
+            { new: true }
+        );
+
+        if (!updatedCase) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found.",
+            });
+        }
+
+        return res.status(200).json({
+            message: "Document uploaded and case updated successfully.",
+            data: newDocument,
+        });
     } catch (error) {
         next(error);
     }
@@ -99,7 +132,7 @@ const getDocumentById = async (req, res, next) => {
 const updateDocument = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const userId = req.user.userId; // Logged-in user's ID
+        const userId = req.user.userId;
 
         if (!userId) {
             return res.status(401).json({
@@ -108,27 +141,44 @@ const updateDocument = async (req, res, next) => {
             });
         }
 
-        const document = await Document.findOneAndUpdate(
-            { _id: id, user: userId, isDelete: false }, // Match document ID and user ID
-            { ...req.body },
-            { new: true }
-        );
+        const { filePath, case: caseId } = req.body;
+
+        const document = await Document.findOne({ _id: id, user: userId, isDelete: false });
 
         if (!document) {
             return res.status(404).json({ status: "error", message: "Document not found or access denied" });
         }
 
-        return res.status(200).json({ message: "Document updated successfully", data: document });
+        const oldFilePath = document.filePath;
+
+        // Update the document
+        document.filePath = filePath || document.filePath;
+        const updatedDocument = await document.save();
+
+        if (filePath && caseId) {
+            // Update the Case model's caseFiles
+            await Case.findByIdAndUpdate(
+                caseId,
+                {
+                    $pull: { caseFiles: { path: oldFilePath } }, // Remove old filePath
+                    $push: { caseFiles: { path: filePath } }, // Add new filePath
+                },
+                { new: true }
+            );
+        }
+
+        return res.status(200).json({ message: "Document updated successfully", data: updatedDocument });
     } catch (error) {
         next(error);
     }
 };
 
+
 // Soft Delete Document
 const softDeleteDocument = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const userId = req.user.userId; // Logged-in user's ID
+        const userId = req.user.userId;
 
         if (!userId) {
             return res.status(401).json({
@@ -138,7 +188,7 @@ const softDeleteDocument = async (req, res, next) => {
         }
 
         const document = await Document.findOneAndUpdate(
-            { _id: id, user: userId, isDelete: false }, // Match document ID and user ID
+            { _id: id, user: userId, isDelete: false },
             { isDelete: true, isTrash: true },
             { new: true }
         );
@@ -147,11 +197,23 @@ const softDeleteDocument = async (req, res, next) => {
             return res.status(404).json({ status: "error", message: "Document not found or access denied" });
         }
 
+        const { case: caseId, filePath } = document;
+
+        if (caseId && filePath) {
+            // Remove the document's filePath from the Case model's caseFiles
+            await Case.findByIdAndUpdate(
+                caseId,
+                { $pull: { caseFiles: { path: filePath } } },
+                { new: true }
+            );
+        }
+
         return res.status(200).json({ message: "Document soft deleted successfully", data: document });
     } catch (error) {
         next(error);
     }
 };
+
 
 
 
