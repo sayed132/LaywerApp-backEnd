@@ -26,7 +26,7 @@ const createCaseRequest = async (req, res, next) => {
     }
 };
 
-// accept or reject case request form lawyer
+// accept or reject case request by lawyer role
 const acceptOrRejectCaseRequest = async (req, res, next) => {
     const { id } = req.params;
     try {
@@ -54,6 +54,24 @@ const acceptOrRejectCaseRequest = async (req, res, next) => {
                 status: "error",
                 message: "Failed to update the case Request. Please try again later.",
             });
+        }
+
+        // If the request is accepted, update the related Case's isActive to true
+        if (updatedCaseRequest.isAccept) {
+            const caseId = updatedCaseRequest.case;
+
+            const updatedCase = await Case.findByIdAndUpdate(
+                caseId,
+                { isActive: true },
+                { new: true }
+            );
+
+            if (!updatedCase) {
+                return res.status(404).json({
+                    status: "error",
+                    message: "Associated case not found",
+                });
+            }
         }
 
         // Save notification 
@@ -96,7 +114,7 @@ const acceptOrRejectCaseRequest = async (req, res, next) => {
     }
 };
 
-// Get all cases request
+// Get all cases request by lawyer role
 const getAllCasesRequestToLawyer = async (req, res, next) => {
     try {
         const userId = req.user.userId; // Get logged-in user's ID from the request
@@ -144,7 +162,7 @@ const getAllCasesRequestToLawyer = async (req, res, next) => {
     }
 };
 
-// Get all cases request
+// Get all accept cases request by lawyer role
 const getAllAcceptCasesRequestToLawyer = async (req, res, next) => {
     try {
         const userId = req.user.userId; // Get logged-in user's ID from the request
@@ -192,7 +210,7 @@ const getAllAcceptCasesRequestToLawyer = async (req, res, next) => {
     }
 };
 
-// Get all cases request
+// Get all cases request by user
 const getAllCasesRequestToUser = async (req, res, next) => {
     try {
         const userId = req.user.userId; // Get logged-in user's ID from the request
