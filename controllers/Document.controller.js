@@ -2,7 +2,9 @@ const path = require("path");
 
 const Document = require("../models/Document.model");
 const Case = require("../models/Case.model");
+const User = require("../models/User.model");
 
+//create document by user
 const createDocument = async (req, res, next) => {
     try {
         const userId = req.user.userId;
@@ -63,6 +65,85 @@ const createDocument = async (req, res, next) => {
     }
 };
 
+//create document by lawyer
+const createDocumentByLawyer = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                status: "error",
+                message: "Unauthorized access. Please log in and try again.",
+            });
+        }
+
+        // Find the user and check their role
+        const user = await User.findById(userId);
+        if (user.role !== "lawyer") {
+            return res.status(403).json({
+                status: "error",
+                message: "Access denied. Only lawyers can perform this action.",
+            });
+        }
+
+        const caseId = req.body.case;
+        const filePath = req.body.filePath;
+
+        // Validate caseId and filePath
+        if (!caseId || !filePath) {
+            return res.status(400).json({
+                status: "error",
+                message: "Case ID and file path are required.",
+            });
+        }
+
+        // Extract file extension from filePath
+        const fileExt = path.extname(filePath);
+
+        const caseBy = await Case.findOne(caseId);
+        if (!caseBy) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found.",
+            });
+        }
+
+        // Create the document
+        const newDocument = new Document({
+            lawyer: userId,
+            case: caseId,
+            user: caseBy.createdBy,
+            filePath,
+            fileExt,
+        });
+
+        await newDocument.save();
+
+        // Find the associated case and update its caseFiles
+        const updatedCase = await Case.findByIdAndUpdate(
+            caseId,
+            {
+                $push: { caseFiles: { path: filePath } },
+            },
+            { new: true }
+        );
+
+        if (!updatedCase) {
+            return res.status(404).json({
+                status: "error",
+                message: "Case not found.",
+            });
+        }
+
+        return res.status(200).json({
+            message: "Document uploaded and case updated successfully.",
+            data: newDocument,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // Get All Documents
 const getAllDocuments = async (req, res, next) => {
     try {
@@ -75,10 +156,27 @@ const getAllDocuments = async (req, res, next) => {
             });
         }
 
+        // Find the user and check their role
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "User not found.",
+            });
+        }
+
         const { search } = req.query; // Get the search term from query params, if any
 
         // Build the query filter
-        let filter = { user: userId, isDelete: false };
+        let filter = { isDelete: false }; // Only fetch non-deleted documents
+
+        if (user.role === "lawyer") {
+            // If the user is a lawyer, they may have access to documents related to cases they are working on
+            filter.lawyer = userId; // Filter documents associated with this lawyer
+        } else {
+            // If the user is not a lawyer, they only have access to their own documents
+            filter.user = userId; // Filter documents created by this user
+        }
 
         if (search) {
             // If a search term is provided, filter documents by filePath (case-insensitive)
@@ -86,10 +184,10 @@ const getAllDocuments = async (req, res, next) => {
         }
 
         // Fetch documents based on the filter
-        const documents = await Document.find(filter).populate(
-            "user",
-            "name email _id profilePicture"
-        ).sort({ updatedAt: -1 }).populate("case");
+        const documents = await Document.find(filter)
+            .populate("user", "name email _id profilePicture")
+            .sort({ updatedAt: -1 })
+            .populate("case");
 
         return res.status(200).json({
             message: "Fetched documents successfully",
@@ -113,16 +211,40 @@ const getDocumentById = async (req, res, next) => {
             });
         }
 
-        const document = await Document.findOne({ _id: id, user: userId, isDelete: false }).populate(
-            "user",
-            "name email _id profilePicture"
-        );
-
-        if (!document) {
-            return res.status(404).json({ status: "error", message: "Document not found or access denied" });
+        // Find the user and check their role
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "User not found.",
+            });
         }
 
-        return res.status(200).json({ message: "Document fetched successfully", data: document });
+        let filter = { _id: id, isDelete: false };
+
+        if (user.role === "lawyer") {
+            // If the user is a lawyer, they might have access to documents associated with cases they are working on
+            filter.lawyer = userId; // Ensure that the document is associated with this lawyer
+        } else {
+            // If the user is not a lawyer, they can only access their own documents
+            filter.user = userId; // Ensure that the document is created by this user
+        }
+
+        // Fetch the document with the modified filter
+        const document = await Document.findOne(filter)
+            .populate("user", "name email _id profilePicture");
+
+        if (!document) {
+            return res.status(404).json({
+                status: "error",
+                message: "Document not found or access denied.",
+            });
+        }
+
+        return res.status(200).json({
+            message: "Document fetched successfully",
+            data: document,
+        });
     } catch (error) {
         next(error);
     }
@@ -173,6 +295,59 @@ const updateDocument = async (req, res, next) => {
     }
 };
 
+//update document by lawyer
+const updateDocumentByLawyer = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                status: "error",
+                message: "Unauthorized access. Please log in and try again.",
+            });
+        }
+
+        // Find the user and check their role
+        const user = await User.findById(userId);
+        if (user.role !== "lawyer") {
+            return res.status(403).json({
+                status: "error",
+                message: "Access denied. Only lawyers can perform this action.",
+            });
+        }
+
+        const { filePath, case: caseId } = req.body;
+
+        const document = await Document.findOne({ _id: id, lawyer: userId, isDelete: false });
+
+        if (!document) {
+            return res.status(404).json({ status: "error", message: "Document not found or access denied" });
+        }
+
+        const oldFilePath = document.filePath;
+
+        // Update the document
+        document.filePath = filePath || document.filePath;
+        const updatedDocument = await document.save();
+
+        if (filePath && caseId) {
+            // Update the Case model's caseFiles
+            await Case.findByIdAndUpdate(
+                caseId,
+                {
+                    $pull: { caseFiles: { path: oldFilePath } }, // Remove old filePath
+                    $push: { caseFiles: { path: filePath } }, // Add new filePath
+                },
+                { new: true }
+            );
+        }
+
+        return res.status(200).json({ message: "Document updated successfully", data: updatedDocument });
+    } catch (error) {
+        next(error);
+    }
+};
 
 // Soft Delete Document
 const softDeleteDocument = async (req, res, next) => {
@@ -214,7 +389,54 @@ const softDeleteDocument = async (req, res, next) => {
     }
 };
 
+// Soft Delete Document by lawyer
+const softDeleteDocumentByLawyer = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId;
 
+        if (!userId) {
+            return res.status(401).json({
+                status: "error",
+                message: "Unauthorized access. Please log in and try again.",
+            });
+        }
+
+        // Find the user and check their role
+        const user = await User.findById(userId);
+        if (user.role !== "lawyer") {
+            return res.status(403).json({
+                status: "error",
+                message: "Access denied. Only lawyers can perform this action.",
+            });
+        }
+
+        const document = await Document.findOneAndUpdate(
+            { _id: id, lawyer: userId, isDelete: false },
+            { isDelete: true, isTrash: true },
+            { new: true }
+        );
+
+        if (!document) {
+            return res.status(404).json({ status: "error", message: "Document not found or access denied" });
+        }
+
+        const { case: caseId, filePath } = document;
+
+        if (caseId && filePath) {
+            // Remove the document's filePath from the Case model's caseFiles
+            await Case.findByIdAndUpdate(
+                caseId,
+                { $pull: { caseFiles: { path: filePath } } },
+                { new: true }
+            );
+        }
+
+        return res.status(200).json({ message: "Document soft deleted successfully", data: document });
+    } catch (error) {
+        next(error);
+    }
+};
 
 
 module.exports = {
@@ -223,4 +445,7 @@ module.exports = {
     getDocumentById,
     updateDocument,
     softDeleteDocument,
+    createDocumentByLawyer,
+    updateDocumentByLawyer,
+    softDeleteDocumentByLawyer
 };
