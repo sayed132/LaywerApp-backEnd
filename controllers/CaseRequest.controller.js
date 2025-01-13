@@ -23,10 +23,10 @@ const createCaseRequest = async (req, res, next) => {
 
         // Save notification 
         const notification = new Notification({
-            user: updateData?.receivedBy,
+            user: newCaseRequest?.receivedBy,
             sendBy: requestBy,
             notificationType: "connect lawyer",
-            targetId: updateData._id,
+            targetId: newCaseRequest._id,
             message: `${req.user.email} send a case request.`,
         });
 
@@ -40,10 +40,10 @@ const createCaseRequest = async (req, res, next) => {
             // Emit socket event for the owner of the post
             if (global.io) {
                 global.io.emit("new_notification", {
-                    user: updateData?.receivedBy,
+                    user: newCaseRequest?.receivedBy,
                     sendBy: requestBy,
                     notificationType: "connect lawyer",
-                    targetId: updateData._id,
+                    targetId: newCaseRequest._id,
                     message: `${req.user.email} send a case request.`,
                 });
 
