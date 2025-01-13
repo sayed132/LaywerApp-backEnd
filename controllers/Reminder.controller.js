@@ -1,6 +1,5 @@
 const Reminder = require("../models/Reminder.model");
 
-//get upcoming + missing reminder
 const getRemindersForNext14DaysController = async (req, res, next) => {
     try {
         const { userId, role } = req.user;
@@ -80,19 +79,19 @@ const getRemindersForNext14DaysController = async (req, res, next) => {
     }
 };
 
-//get upcoming reminder
+
 const getUpcomingRemindersController = async (req, res, next) => {
     try {
-        const { userId, role } = req.user;
+        const userId = req.user.userId;
 
-        if (!userId || !role) {
+        if (!userId) {
             return res.status(404).json({
                 status: "error",
                 message: "Your token expired or you are not logged in. Please log in and try again.",
             });
         }
 
-        // Get today's date and date 14 days later
+        // Get today's date
         const today = new Date();
         const fourteenDaysLater = new Date(today);
         fourteenDaysLater.setDate(today.getDate() + 14); // Get date 14 days later from today
@@ -100,22 +99,13 @@ const getUpcomingRemindersController = async (req, res, next) => {
         // Extract the limit parameter from query (if provided). If no limit, set it to null (no limit)
         const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
 
-        // Define query conditions based on role
-        const queryConditions = {
+        // Query to get upcoming reminders for the logged-in user within the next 14 days
+        const upcomingRemindersDataQuery = Reminder.find({
             isDeleted: false,
+            targetUser: userId, // Only fetch reminders where the targetUser matches the logged-in user
             deadline: { $gte: today, $lte: fourteenDaysLater }, // Fetch upcoming deadlines
             status: { $ne: "complete" }, // Only fetch incomplete reminders
-        };
-
-        // Adjust query based on user role
-        if (role === "lawyer") {
-            queryConditions.reminderBy = userId; // If role is lawyer, fetch reminders where reminderBy is the userId
-        } else if (role === "user") {
-            queryConditions.targetUser = userId; // If role is user, fetch reminders where targetUser is the userId
-        }
-
-        // Query to get upcoming reminders for the logged-in user within the next 14 days
-        const upcomingRemindersDataQuery = Reminder.find(queryConditions)
+        })
             .populate({
                 path: "reminderBy targetUser",
                 select: "firstName lastName _id profilePicture email", // Select only specific fields
@@ -132,7 +122,6 @@ const getUpcomingRemindersController = async (req, res, next) => {
             reminder: [],
         };
 
-        // Categorize reminders
         upcomingRemindersData.forEach((reminderItem) => {
             if (reminderItem.deadline) {
                 const deadline = new Date(reminderItem.deadline);
@@ -153,7 +142,6 @@ const getUpcomingRemindersController = async (req, res, next) => {
         next(error);
     }
 };
-
 
 module.exports = {
     getRemindersForNext14DaysController, getUpcomingRemindersController
