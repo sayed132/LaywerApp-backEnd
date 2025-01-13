@@ -20,6 +20,35 @@ const createCaseRequest = async (req, res, next) => {
         const newCaseRequest = new CaseRequest(updateData);
         await newCaseRequest.save();
 
+        // Save notification 
+        const notification = new Notification({
+            user: updateData?.requestBy,
+            sendBy: requestBy,
+            notificationType: "connect lawyer",
+            targetId: updateData._id,
+            message: `${req.user.email} send a case request.`,
+        });
+
+        if (
+            notification.user.toString() !== notification.sendBy.toString()
+        ) {
+            await notification.save();
+
+            // Emit socket event for the owner of the post
+            if (global.io) {
+                global.io.emit("new_notification", {
+                    user: updateData?.requestBy,
+                    sendBy: requestBy,
+                    notificationType: "connect lawyer",
+                    targetId: updateData._id,
+                    message: `${req.user.email} send a case request.`,
+                });
+
+            } else {
+                console.error("Socket.io not initialized");
+            }
+        }
+
         return res.status(200).json({ message: "Case Request send successfully", data: newCaseRequest });
     } catch (error) {
         next(error);
@@ -264,7 +293,6 @@ const getAllCasesStatusFromLawyer = async (req, res, next) => {
         next(error);
     }
 };
-
 
 // Get all cases request by user
 const getAllCasesRequestToUser = async (req, res, next) => {
