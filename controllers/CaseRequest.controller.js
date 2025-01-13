@@ -7,6 +7,7 @@ const createCaseRequest = async (req, res, next) => {
     try {
 
         const requestBy = req.user.userId;
+        console.log(requestBy)
 
         if (!requestBy) {
             return res.status(404).json({
@@ -22,12 +23,14 @@ const createCaseRequest = async (req, res, next) => {
 
         // Save notification 
         const notification = new Notification({
-            user: updateData?.requestBy,
+            user: updateData?.receivedBy,
             sendBy: requestBy,
             notificationType: "connect lawyer",
             targetId: updateData._id,
             message: `${req.user.email} send a case request.`,
         });
+
+        console.log(updateData)
 
         if (
             notification.user.toString() !== notification.sendBy.toString()
@@ -37,7 +40,7 @@ const createCaseRequest = async (req, res, next) => {
             // Emit socket event for the owner of the post
             if (global.io) {
                 global.io.emit("new_notification", {
-                    user: updateData?.requestBy,
+                    user: updateData?.receivedBy,
                     sendBy: requestBy,
                     notificationType: "connect lawyer",
                     targetId: updateData._id,
