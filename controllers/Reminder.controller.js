@@ -2,37 +2,45 @@ const Reminder = require("../models/Reminder.model");
 
 const getRemindersForNext14DaysController = async (req, res, next) => {
     try {
-        const userId = req.user.userId;
+        const { userId, role } = req.user;
 
-        if (!userId) {
+        if (!userId || !role) {
             return res.status(404).json({
                 status: "error",
                 message: "Your token expired or you are not logged in. Please log in and try again.",
             });
         }
 
-        // Get today's date
+        // Get today's date and date 14 days later
         const today = new Date();
         const fourteenDaysLater = new Date(today);
-        fourteenDaysLater.setDate(today.getDate() + 14); // Get date 14 days later from today
+        fourteenDaysLater.setDate(today.getDate() + 14);
 
         // Extract the limit parameter from query (if provided). If no limit, set it to null (no limit)
         const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
 
-        // Query to get reminders for the logged-in user with deadlines within the next 14 days and those with missing deadlines
-        const remindersDataQuery = Reminder.find({
+        // Define query conditions based on role
+        const queryConditions = {
             isDeleted: false,
-            targetUser: userId, // Only fetch reminders where the targetUser matches the logged-in user
             deadline: { $exists: true },
             $or: [
                 { deadline: { $gte: today, $lte: fourteenDaysLater }, status: { $ne: "complete" } }, // upcoming deadlines
                 { deadline: { $lt: today }, status: { $ne: "complete" } }, // missing deadlines
             ],
-        })
-            .populate({
-                path: "reminderBy targetUser",
-                select: "firstName lastName _id profilePicture email", // Select only specific fields
-            });
+        };
+
+        // Adjust query based on user role
+        if (role === "lawyer") {
+            queryConditions.reminderBy = userId;
+        } else if (role === "user") {
+            queryConditions.targetUser = userId;
+        }
+
+        // Query to get reminders
+        const remindersDataQuery = Reminder.find(queryConditions).populate({
+            path: "reminderBy targetUser",
+            select: "firstName lastName _id profilePicture email", // Select only specific fields
+        });
 
         // Apply limit if provided
         if (limit) {
@@ -46,6 +54,7 @@ const getRemindersForNext14DaysController = async (req, res, next) => {
             missingReminder: [],
         };
 
+        // Categorize reminders
         remindersData.forEach((reminderItem) => {
             if (reminderItem.deadline) {
                 const deadline = new Date(reminderItem.deadline);
@@ -69,6 +78,7 @@ const getRemindersForNext14DaysController = async (req, res, next) => {
         next(error);
     }
 };
+
 
 const getUpcomingRemindersController = async (req, res, next) => {
     try {
