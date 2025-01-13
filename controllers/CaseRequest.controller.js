@@ -223,12 +223,20 @@ const getAllCasesStatusFromLawyer = async (req, res, next) => {
         }
 
 
-
         // Build the query dynamically
-        const query = { receivedBy: userId, isDelete: false, isTrash: false, isAccept: true, isReject: false };
+        const query = {
+            receivedBy: userId,
+            isDelete: false,
+            isTrash: false,
+            isAccept: true,
+            isReject: false,
+        };
 
-        // Fetch cases based on the query
-        const cases = await CaseRequest.find(query).sort({ updatedAt: -1 });
+        // Fetch cases with populated references
+        const cases = await CaseRequest.find(query)
+            .populate("case", "caseTitle caseType status isActive") // Fetch specific fields from the related `Case`
+            .populate("requestBy", "name email") // Optional: Populate the requester details
+            .sort({ updatedAt: -1 });
 
         if (!cases || cases.length === 0) {
             return res.status(404).json({
@@ -238,10 +246,9 @@ const getAllCasesStatusFromLawyer = async (req, res, next) => {
         }
 
         // Calculate statistics
-        const totalCases = cases?.length;
-        const activeCases = cases?.filter((c) => c?.isActive).length;
-        const inactiveCases = cases?.filter((c) => !c?.isActive).length;
-        const completedCases = cases?.filter((c) => c?.status === "complete").length;
+        const totalCases = cases.length;
+        const reqCases = cases.filter((c) => c.case && !c.case.isAccept).length;
+        const completedCases = cases.filter((c) => c.case && c.case.status === "complete").length;
         const rejectedCases = cases.filter((c) => c.isReject).length;
         const acceptCases = cases.filter((c) => c.isAccept).length;
 
@@ -249,17 +256,17 @@ const getAllCasesStatusFromLawyer = async (req, res, next) => {
             message: "All cases status fetched successfully",
             data: {
                 totalCases,
-                activeCases,
-                inactiveCases,
+                reqCases,
                 completedCases,
                 rejectedCases,
-                acceptCases
+                acceptCases,
             },
         });
     } catch (error) {
         next(error);
     }
 };
+
 
 // Get all cases request by user
 const getAllCasesRequestToUser = async (req, res, next) => {
