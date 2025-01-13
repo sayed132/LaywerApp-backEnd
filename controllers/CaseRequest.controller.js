@@ -260,6 +260,8 @@ const getAllCasesStatusFromLawyer = async (req, res, next) => {
             receivedBy: userId,
             isDelete: false,
             isTrash: false,
+            isAccept: true,
+            isReject: false
         };
 
         // Fetch cases with populated references
@@ -277,7 +279,6 @@ const getAllCasesStatusFromLawyer = async (req, res, next) => {
 
         // Calculate statistics
         const totalCases = cases.length;
-        const reqCases = cases.filter((c) => !c.isAccept).length;
         const completedCases = cases.filter((c) => c.case && c.case.status === "complete").length;
         const rejectedCases = cases.filter((c) => c.isReject).length;
         const acceptCases = cases.filter((c) => c.isAccept).length;
@@ -286,7 +287,6 @@ const getAllCasesStatusFromLawyer = async (req, res, next) => {
             message: "All cases status fetched successfully",
             data: {
                 totalCases,
-                reqCases,
                 completedCases,
                 rejectedCases,
                 acceptCases,
