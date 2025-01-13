@@ -26,7 +26,7 @@ router.get("/all", verifyToken, getAllCasesRequestController);
 router.get("/:id", verifyToken, getCaseRequestByIdController);
 
 //get case status from lawyer
-router.get("case-status", verifyToken, getAllCasesStatusFromLawyer);
+router.get("/case-status", verifyToken, getAllCasesStatusFromLawyer);
 
 
 module.exports = router;
