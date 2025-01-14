@@ -1,4 +1,5 @@
 const { CustomError } = require("../middlewares/CustomError");
+const Case = require("../models/Case.model");
 const CaseRequest = require("../models/CaseRequest.model");
 const Notification = require("../models/Notification.model");
 
@@ -112,7 +113,7 @@ const acceptOrRejectCaseRequest = async (req, res, next) => {
             sendBy: userId,
             notificationType: "connect lawyer",
             targetId: updatedCaseRequest._id,
-            message: `${req.user.email} your connection request update.`,
+            message: `${req.user.email} update your case request`,
         });
 
         if (
@@ -127,7 +128,7 @@ const acceptOrRejectCaseRequest = async (req, res, next) => {
                     sendBy: userId,
                     notificationType: "connect lawyer",
                     targetId: updatedCaseRequest._id,
-                    message: `${req.user.email} your connection request update using socket.`,
+                    message: `${req.user.email} update your case request`,
                 });
 
             } else {
