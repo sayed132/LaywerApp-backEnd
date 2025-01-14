@@ -87,7 +87,7 @@ const createDocumentByLawyer = async (req, res, next) => {
         }
 
         const caseId = req.body.case;
-        const filePath = req.body.filePath;
+        const filePath = req.body.filePath
 
         // Validate caseId and filePath
         if (!caseId || !filePath) {
@@ -100,24 +100,16 @@ const createDocumentByLawyer = async (req, res, next) => {
         // Extract file extension from filePath
         const fileExt = path.extname(filePath);
 
-        const caseBy = await Case.findOne(caseId);
-        if (!caseBy) {
-            return res.status(404).json({
-                status: "error",
-                message: "Case not found.",
-            });
-        }
-
         // Create the document
         const newDocument = new Document({
             lawyer: userId,
             case: caseId,
-            user: caseBy.createdBy,
             filePath,
             fileExt,
         });
 
         await newDocument.save();
+
 
         // Find the associated case and update its caseFiles
         const updatedCase = await Case.findByIdAndUpdate(
@@ -127,6 +119,7 @@ const createDocumentByLawyer = async (req, res, next) => {
             },
             { new: true }
         );
+
 
         if (!updatedCase) {
             return res.status(404).json({
@@ -185,7 +178,7 @@ const getAllDocuments = async (req, res, next) => {
 
         // Fetch documents based on the filter
         const documents = await Document.find(filter)
-            .populate("user", "name email _id profilePicture")
+            .populate("user", "name email _id profilePicture").populate("lawyer", "name email _id profilePicture")
             .sort({ updatedAt: -1 })
             .populate("case");
 
@@ -232,7 +225,7 @@ const getDocumentById = async (req, res, next) => {
 
         // Fetch the document with the modified filter
         const document = await Document.findOne(filter)
-            .populate("user", "name email _id profilePicture");
+            .populate("user", "name email _id profilePicture").populate("lawyer", "name email _id profilePicture");
 
         if (!document) {
             return res.status(404).json({
