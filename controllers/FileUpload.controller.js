@@ -20,7 +20,28 @@ const dynamicUploadController = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}; 
+};
+
+const multipleUploadController = async (req, res, next) => {
+  try {
+    const { type } = req.params;
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded!" });
+    }
+
+    // Generate URLs for all uploaded files
+    const fileUrls = req.files.map((file) => file.filename);
+
+    res.status(200).json({
+      message: "Files uploaded successfully!",
+      fileUrls,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 
 const showFileController = async (req, res, next) => {
@@ -40,4 +61,8 @@ const showFileController = async (req, res, next) => {
   }
 };
 
-module.exports = { dynamicUploadController, showFileController };
+module.exports = {
+  dynamicUploadController,
+  showFileController,
+  multipleUploadController
+};
