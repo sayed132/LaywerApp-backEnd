@@ -1,5 +1,5 @@
 const express = require("express");
-const { registerController, loginController, logOutController, refetchUserController, getUserProfileController, updateUserController, uploadProfilePictureController, getLawyersController } = require("../controllers/User.controller");
+const { registerController, loginController, logOutController, refetchUserController, getUserProfileController, updateUserController, uploadProfilePictureController, getLawyersController, getWishlist } = require("../controllers/User.controller");
 const verifyToken = require("../middlewares/verifyToken");
 const upload = require("../middlewares/Upload");
 
@@ -19,6 +19,9 @@ router.get("/get-me", verifyToken, refetchUserController);
 
 //get lawyers
 router.get("/get-lawyers", verifyToken, getLawyersController);
+
+//get wish list lawyer
+router.post("/my-wishlist", verifyToken, getWishlist);
 
 //get user profile
 router.get("/profile", verifyToken, getUserProfileController)

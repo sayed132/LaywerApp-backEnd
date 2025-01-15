@@ -398,6 +398,62 @@ const getLawyersController = async (req, res, next) => {
     }
 };
 
+//get lawyers
+const getWishlist = async (req, res, next) => {
+    try {
+        // Extract the _id array from the request body
+        const { ids } = req.body;
+
+        // Validate if ids array is provided and is an array
+        if (!ids || !Array.isArray(ids)) {
+            return res.status(400).json({
+                status: "error",
+                message: "Invalid or missing 'ids' array in the request body",
+            });
+        }
+
+        // Build the query for fetching lawyers
+        const query = {
+            role: "lawyer",
+            isDelete: false,
+            _id: { $in: ids }, // Match _id with the provided ids
+        };
+
+        // Fetch lawyers based on the query
+        const lawyers = await User.find(query);
+
+        if (!lawyers || lawyers.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No lawyers found matching the given IDs",
+            });
+        }
+
+        // Process lawyers' data
+        const processedLawyers = lawyers.map(lawyer => ({
+            _id: lawyer._id,
+            name: `${lawyer.firstName} ${lawyer.lastName}`,
+            address: lawyer.address,
+            experience: lawyer.experience,
+            profilePicture: lawyer.profilePicture,
+            specialty: lawyer.specialty,
+            accountDate: lawyer.createdAt,
+            images: lawyer.images,
+            phone: lawyer.phone,
+            email: lawyer.email
+        }));
+
+        // Respond with the matched lawyers
+        return res.status(200).json({
+            message: "Lawyers retrieved successfully",
+            data: processedLawyers,
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
 
 
 module.exports = {
@@ -408,5 +464,6 @@ module.exports = {
     getUserProfileController,
     updateUserController,
     uploadProfilePictureController,
-    getLawyersController
+    getLawyersController,
+    getWishlist
 };
