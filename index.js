@@ -55,7 +55,7 @@ io.on("connection", (socket) => {
 
         console.log(`User ${socket.userId} is offline`);
       } catch (error) {
-        console.error("Error updating user status:", error);
+        console.log("Error updating user status:", error);
       }
     }
   });

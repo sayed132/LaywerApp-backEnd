@@ -1,5 +1,5 @@
 const errorHandler=(err,req,res,next)=>{
-    console.error(err.stack)
+    console.log(err.stack)
     if(err instanceof CustomError){
         return res.status(err.status).json({error:err.message})
     }

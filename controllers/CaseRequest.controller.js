@@ -49,7 +49,7 @@ const createCaseRequest = async (req, res, next) => {
                 });
 
             } else {
-                console.error("Socket.io not initialized");
+                console.log("Socket.io not initialized");
             }
         }
 
@@ -132,7 +132,7 @@ const acceptOrRejectCaseRequest = async (req, res, next) => {
                 });
 
             } else {
-                console.error("Socket.io not initialized");
+                console.log("Socket.io not initialized");
             }
         }
 

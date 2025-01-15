@@ -55,7 +55,7 @@ const registerController = async (req, res) => {
             status: "success",
         });
     } catch (error) {
-        console.error("Error in registerController:", error);
+        console.log("Error in registerController:", error);
         res.status(500).json({ message: "An internal server error occurred" });
     }
 };
@@ -117,7 +117,7 @@ const loginController = async (req, res) => {
             data: userResponse,
         });
     } catch (error) {
-        console.error("Error in loginController:", error);
+        console.log("Error in loginController:", error);
         res.status(500).json({
             status: "error",
             message: "An error occurred during login. Please try again!",
@@ -322,7 +322,7 @@ const updateUserController = async (req, res) => {
             data: updateFields,
         });
     } catch (error) {
-        console.error("Error in updateUserController:", error);
+        console.log("Error in updateUserController:", error);
         res.status(500).json({
             status: "error",
             message: error.message,

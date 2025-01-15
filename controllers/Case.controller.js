@@ -123,7 +123,7 @@ const updateCaseController = async (req, res, next) => {
                     `New notification for case owner: ${updatedCase.createdBy}, message: ${notification.message}`
                 );
             } else {
-                console.error("Socket.io not initialized");
+                console.log("Socket.io not initialized");
             }
         }
 

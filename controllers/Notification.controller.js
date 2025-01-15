@@ -39,7 +39,7 @@ const saveNotificationFromSocket = async (req, res) => {
 
     res.status(201).json(notification);
   } catch (error) {
-    console.error("Failed to save notification:", error);
+    console.log("Failed to save notification:", error);
     res.status(500).json({ message: "Failed to save notification", error });
   }
 };
@@ -70,7 +70,7 @@ const deleteNotificationsOnClick = async (req, res) => {
 
     res.json({ updatedNotifications });
   } catch (error) {
-    console.error("Error updating and deleting notifications:", error);
+    console.log("Error updating and deleting notifications:", error);
     res
       .status(500)
       .json({ error: "Failed to update and delete notifications" });
