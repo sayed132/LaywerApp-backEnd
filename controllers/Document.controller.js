@@ -137,60 +137,7 @@ const createDocumentByLawyer = async (req, res, next) => {
     }
 };
 
-// Get All Documents
-// const getAllDocuments = async (req, res, next) => {
-//     try {
-//         const userId = req.user.userId; // Get logged-in user's ID from the request
-
-//         if (!userId) {
-//             return res.status(401).json({
-//                 status: "error",
-//                 message: "Unauthorized access. Please log in and try again.",
-//             });
-//         }
-
-//         // Find the user and check their role
-//         const user = await User.findById(userId);
-//         if (!user) {
-//             return res.status(404).json({
-//                 status: "error",
-//                 message: "User not found.",
-//             });
-//         }
-
-//         const { search } = req.query; // Get the search term from query params, if any
-
-//         // Build the query filter
-//         let filter = { isDelete: false }; // Only fetch non-deleted documents
-
-//         if (user.role === "lawyer") {
-//             // If the user is a lawyer, they may have access to documents related to cases they are working on
-//             filter.lawyer = userId; // Filter documents associated with this lawyer
-//         } else {
-//             // If the user is not a lawyer, they only have access to their own documents
-//             filter.user = userId; // Filter documents created by this user
-//         }
-
-//         if (search) {
-//             // If a search term is provided, filter documents by filePath (case-insensitive)
-//             filter.filePath = { $regex: search, $options: 'i' }; // This will match the search term in filePath
-//         }
-
-//         // Fetch documents based on the filter
-//         const documents = await Document.find(filter)
-//             .populate("user", "name email _id profilePicture").populate("lawyer", "name email _id profilePicture")
-//             .sort({ updatedAt: -1 })
-//             .populate("case");
-
-//         return res.status(200).json({
-//             message: "Fetched documents successfully",
-//             data: documents,
-//         });
-//     } catch (error) {
-//         next(error);
-//     }
-// };
-
+//get all document with grouped
 const getAllDocuments = async (req, res, next) => {
     try {
         const userId = req.user.userId;

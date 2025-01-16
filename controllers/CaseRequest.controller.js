@@ -350,7 +350,7 @@ const getAllCasesStatusFromLawyer = async (req, res, next) => {
 
         // Calculate statistics
         const totalCases = cases.length;
-        const completedCases = cases.filter((c) => c.case && c.case.status === "complete").length;
+        const completedCases = cases.filter((c) => c.case && c.status === "complete").length;
         const rejectedCases = cases.filter((c) => c.isReject).length;
         const acceptCases = cases.filter((c) => c.isAccept).length;
 
