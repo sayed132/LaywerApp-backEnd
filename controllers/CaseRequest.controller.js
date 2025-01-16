@@ -111,7 +111,7 @@ const acceptOrRejectCaseRequest = async (req, res, next) => {
         const notification = new Notification({
             user: updatedCaseRequest?.requestBy,
             sendBy: userId,
-            notificationType: "connect lawyer",
+            notificationType: "case request",
             targetId: updatedCaseRequest._id,
             message: `${req.user.email} update your case request`,
         });
@@ -126,9 +126,79 @@ const acceptOrRejectCaseRequest = async (req, res, next) => {
                 global.io.emit("new_notification", {
                     user: updatedCaseRequest?.requestBy,
                     sendBy: userId,
-                    notificationType: "connect lawyer",
+                    notificationType: "case request",
                     targetId: updatedCaseRequest._id,
                     message: `${req.user.email} update your case request`,
+                });
+
+            } else {
+                console.log("Socket.io not initialized");
+            }
+        }
+
+
+        return res.status(200).json({
+            status: "success",
+            message: "Case request updated successfully",
+            data: updates
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// update case request
+const updateCaseByLawyer = async (req, res, next) => {
+    const { id } = req.params;
+    try {
+        const userId = req.user.userId;
+
+        if (!userId) {
+            return res.status(404).json({
+                status: "error",
+                message: "Your token expired or you are not logged in. Please log in and try again.",
+            });
+        }
+
+        const findCaseRequest = await CaseRequest.findById(id);
+
+        if (!findCaseRequest) {
+            throw new CustomError("Case not found", 404);
+        }
+
+        const updates = req.body;
+
+        const updatedCaseRequest = await CaseRequest.findByIdAndUpdate(findCaseRequest._id, updates, { new: true });
+
+        if (!updatedCaseRequest) {
+            return res.status(500).json({
+                status: "error",
+                message: "Failed to update the case Request. Please try again later.",
+            });
+        }
+
+        // Save notification 
+        const notification = new Notification({
+            user: updatedCaseRequest?.requestBy,
+            sendBy: userId,
+            notificationType: "case status",
+            targetId: updatedCaseRequest._id,
+            message: `${req.user.email} update your case status`,
+        });
+
+        if (
+            notification.user.toString() !== notification.sendBy.toString()
+        ) {
+            await notification.save();
+
+            // Emit socket event for the owner of the post
+            if (global.io) {
+                global.io.emit("new_notification", {
+                    user: updatedCaseRequest?.requestBy,
+                    sendBy: userId,
+                    notificationType: "case status",
+                    targetId: updatedCaseRequest._id,
+                    message: `${req.user.email} update your case status`,
                 });
 
             } else {
@@ -415,5 +485,6 @@ module.exports = {
     getCaseRequestByIdController,
     getAllCasesRequestToUser,
     getAllAcceptCasesRequestToLawyer,
-    getAllCasesStatusFromLawyer
+    getAllCasesStatusFromLawyer,
+    updateCaseByLawyer
 };
