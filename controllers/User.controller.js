@@ -376,7 +376,10 @@ const getLawyersController = async (req, res, next) => {
                 accountDate: lawyer.createdAt,
                 images: lawyer.images,
                 phone: lawyer.phone,
-                email: lawyer.email
+                email: lawyer.email,
+                workTitle: lawyer.workTitle,
+                country: lawyer.country,
+                gender: lawyer.gender
             };
         });
 
