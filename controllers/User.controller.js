@@ -241,8 +241,8 @@ const getUserProfileController = async (req, res) => {
             workTitle: user.workTitle,
             _id: user._id,
             images: user.images,
-            specialty: lawyer.specialty,
-            experience: lawyer.experience,
+            specialty: user.specialty,
+            experience: user.experience,
         };
 
         res.status(200).json({
