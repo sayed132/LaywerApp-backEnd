@@ -460,6 +460,136 @@ const getWishlist = async (req, res, next) => {
     }
 };
 
+//-------------------admin api controller--------------------//
+
+//get all users
+const getAllUserForAdmin = async (req, res, next) => {
+    try {
+        if (req.user.role !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Only admins can access this resource.",
+            });
+        }
+
+
+        const { page = 1, limit = 10, role } = req.query; // Query parameters for pagination and role filtering
+
+        const filter = {};
+        if (role) {
+            filter.role = role; // Filtering users by role
+        }
+
+        const users = await User.find(filter)
+            .select("-password") // Excluding the password field
+            .skip((page - 1) * limit) // Skipping records for pagination
+            .limit(Number(limit)); // Limiting records per page
+
+        const totalUsers = await User.countDocuments(filter); // Total user count for filtered query
+        const totalPages = Math.ceil(totalUsers / limit); // Total pages calculation
+
+        res.status(200).json({
+            success: true,
+            data: {
+                users,
+                totalUsers,
+                totalPages,
+                currentPage: Number(page),
+                limit: Number(limit),
+            },
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Something went wrong.",
+        });
+    }
+};
+
+//get single user
+const getSingleUserForAdmin = async (req, res, next) => {
+    try {
+        // Check if the requesting user is an admin
+        if (req.user.role !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Only admins can access this resource.",
+            });
+        }
+
+        const { id } = req.params; // Extract user ID from the request params
+
+        // Fetch user by ID and exclude the password field
+        const user = await User.findById(id).select("-password");
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found.",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: user,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: "Something went wrong.",
+        });
+    }
+};
+
+//update user by admin
+const updateUserByADmin = async (req, res) => {
+
+    if (req.user.role !== "admin") {
+        return res.status(403).json({
+            success: false,
+            message: "Access denied. Only admins can access this resource.",
+        });
+    }
+
+    const { id } = req.params;
+
+    const updateFields = req.body;
+
+    try {
+        // Find the user to update
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "User not found",
+            });
+        }
+
+        Object.keys(updateFields).forEach((key) => {
+            user[key] = updateFields[key];
+        });
+
+        // Save the updated user
+        await user.save();
+
+        res.status(200).json({
+            status: "success",
+            message: "Profile updated successfully",
+            data: updateFields,
+        });
+    } catch (error) {
+        console.log("Error in updateUserController:", error);
+        res.status(500).json({
+            status: "error",
+            message: error.message,
+            errorMessage: "An internal server error occurred",
+        });
+    }
+};
+
+
 
 
 module.exports = {
@@ -471,5 +601,8 @@ module.exports = {
     updateUserController,
     uploadProfilePictureController,
     getLawyersController,
-    getWishlist
+    getWishlist,
+    getAllUserForAdmin,
+    getSingleUserForAdmin,
+    updateUserByADmin
 };

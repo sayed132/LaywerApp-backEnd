@@ -1,6 +1,6 @@
 const express = require("express");
 const verifyToken = require("../middlewares/verifyToken");
-const { createCaseRequest, acceptOrRejectCaseRequest, getAllCasesRequestToLawyer, getCaseRequestByIdController, getAllCasesRequestController, getAllCasesRequestToUser, getAllAcceptCasesRequestToLawyer, getAllCasesStatusFromLawyer, updateCaseByLawyer } = require("../controllers/CaseRequest.controller");
+const { createCaseRequest, acceptOrRejectCaseRequest, getAllCasesRequestToLawyer, getCaseRequestByIdController, getAllCasesRequestController, getAllCasesRequestToUser, getAllAcceptCasesRequestToLawyer, getAllCasesStatusFromLawyer, updateCaseByLawyer, getAllCasesRequestControllerByAdmin, getSingleCaseReqByAdmin } = require("../controllers/CaseRequest.controller");
 
 const router = express.Router();
 
@@ -30,6 +30,13 @@ router.get("/:id", verifyToken, getCaseRequestByIdController);
 
 //get case status from lawyer
 router.get("/lawyer/case-status", verifyToken, getAllCasesStatusFromLawyer);
+
+//----------------------admin route---------------------------//
+//get all case req by admin
+router.get("/admin/all-case-req", verifyToken, getAllCasesRequestControllerByAdmin)
+
+//get single case request by admin
+router.get("/admin/:id", verifyToken, getSingleCaseReqByAdmin);
 
 
 module.exports = router;

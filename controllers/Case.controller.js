@@ -138,33 +138,6 @@ const updateCaseController = async (req, res, next) => {
     }
 };
 
-// Get all cases
-const getAllCasesController = async (req, res, next) => {
-    try {
-        const userId = req.user.userId;
-
-        if (!userId) {
-            return res.status(404).json({
-                status: "error",
-                message: "Your token expired or you are not logged in. Please log in and try again.",
-            });
-        }
-
-        const cases = await Case.find({ isDelete: false, isTrash: false }).sort({ createdAt: -1 });
-
-        if (!cases || cases.length === 0) {
-            return res.status(404).json({
-                status: "error",
-                message: "No cases found",
-            });
-        }
-
-        return res.status(200).json({ message: "all cases get successfully", data: cases });
-    } catch (error) {
-        next(error);
-    }
-};
-
 //get user all case
 const getAllCasesFromUser = async (req, res, next) => {
     try {
@@ -471,6 +444,178 @@ const getUpcomingReminders = async (req, res, next) => {
     }
 };
 
+//----------------admin api controller---------------------//
+// Get all cases
+const getAllCasesController = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                status: "error",
+                message: "Your token expired or you are not logged in. Please log in and try again.",
+            });
+        }
+
+        // Extract pagination and query parameters
+        const { page = 1, limit = 10, status } = req.query;
+
+        // Define the filter object
+        const filter = { isDelete: false, isTrash: false };
+
+        // Add status filter if provided
+        if (status) {
+            filter.status = status;
+        }
+
+        // Calculate skip and limit for pagination
+        const skip = (page - 1) * limit;
+
+        // Fetch cases with filters, sorting, and pagination
+        const cases = await Case.find(filter)
+            .sort({ createdAt: -1 }) // Sort by createdAt in descending order
+            .skip(skip) // Skip records for pagination
+            .limit(Number(limit)); // Limit number of records per page
+
+        // Count the total number of documents that match the filter
+        const totalCases = await Case.countDocuments(filter);
+
+        if (!cases || cases.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No cases found",
+            });
+        }
+
+        // Return the paginated data and meta information
+        return res.status(200).json({
+            status: "success",
+            message: "All cases retrieved successfully",
+            data: cases,
+            meta: {
+                totalCases,
+                totalPages: Math.ceil(totalCases / limit),
+                currentPage: Number(page),
+                limit: Number(limit),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+//update case by admin
+const updateCaseControllerByAdmin = async (req, res, next) => {
+    const { caseId } = req.params;
+    try {
+        const userId = req.user.userId;
+
+        if (!userId) {
+            return res.status(404).json({
+                status: "error",
+                message: "Your token expired or you are not logged in. Please log in and try again.",
+            });
+        }
+
+        const findCase = await Case.findById(caseId);
+
+        if (!findCase) {
+            throw new CustomError("Case not found", 404);
+        }
+
+        const updates = req.body;
+
+        const updatedCase = await Case.findByIdAndUpdate(findCase._id, updates, { new: true });
+
+        if (!updatedCase) {
+            return res.status(500).json({
+                status: "error",
+                message: "Failed to update the case. Please try again later.",
+            });
+        }
+
+        const logReminderData = `A admin ${req.user?.email} update your case. 
+ updateData: ${JSON.stringify(updatedCase)}`;
+
+        // Check if a reminder already exists for the case
+        const existingReminder = await Reminder.findOne({ target: findCase._id });
+
+        if (existingReminder) {
+            // Update the existing reminder, ensuring all fields are properly updated
+            existingReminder.message = `a admin ${userId} update your case`;
+            existingReminder.targetModel = "Case";
+            existingReminder.reminderType = updatedCase.caseType;
+            existingReminder.targetUser = updatedCase.createdBy;
+            existingReminder.reminderBy = userId;
+            existingReminder.additionalData = logReminderData;
+
+            // Ensure the deadline is updated
+            existingReminder.deadline = updates.deadline || updatedCase.deadline;
+
+            // Ensure the reminder title is updated
+            existingReminder.reminderTitle = updates.caseTitle || updatedCase.caseTitle;
+            existingReminder.status = updates.status || updatedCase.status;
+
+            await existingReminder.save();
+        } else {
+            // Create a new reminder
+            await Reminder.create({
+                message: `a admin ${userId} update your case`,
+                targetModel: "Case",
+                reminderType: updatedCase?.caseType,
+                target: updatedCase?._id,
+                targetUser: updatedCase?.createdBy,
+                reminderBy: userId,
+                additionalData: logReminderData,
+                deadline: updatedCase?.deadline,
+                status: updatedCase?.status,
+                reminderTitle: updatedCase?.caseTitle
+            });
+        }
+
+        // Save notification 
+        const notification = new Notification({
+            user: updatedCase?.createdBy,
+            sendBy: userId,
+            notificationType: "case",
+            targetId: updatedCase._id,
+            message: `${req.user.email} updated your case.`,
+        });
+
+        if (
+            notification.user.toString() !== notification.sendBy.toString()
+        ) {
+            await notification.save();
+
+            // Emit socket event for the owner of the post
+            if (global.io) {
+                global.io.emit("new_notification", {
+                    user: updatedCase?.createdBy,
+                    sendBy: userId,
+                    notificationType: "case",
+                    targetId: updatedCase._id,
+                    message: `a admin ${req.user.email} updated your case using socket.`,
+                });
+                console.log(
+                    `New notification for case owner: ${updatedCase.createdBy}, message: ${notification.message}`
+                );
+            } else {
+                console.log("Socket.io not initialized");
+            }
+        }
+
+
+        return res.status(200).json({
+            status: "success",
+            message: "Case updated successfully",
+            data: updates
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 
 module.exports = {
     createCase,
@@ -483,5 +628,6 @@ module.exports = {
     getRemindersController,
     getUpcomingReminders,
     getAllCasesFromUser,
-    getAllCasesStatusFromUser
+    getAllCasesStatusFromUser,
+    updateCaseControllerByAdmin
 };

@@ -1,5 +1,5 @@
 const express = require("express");
-const { registerController, loginController, logOutController, refetchUserController, getUserProfileController, updateUserController, uploadProfilePictureController, getLawyersController, getWishlist } = require("../controllers/User.controller");
+const { registerController, loginController, logOutController, refetchUserController, getUserProfileController, updateUserController, uploadProfilePictureController, getLawyersController, getWishlist, getAllUserForAdmin, getSingleUserForAdmin, updateUserByADmin } = require("../controllers/User.controller");
 const verifyToken = require("../middlewares/verifyToken");
 const upload = require("../middlewares/Upload");
 
@@ -31,5 +31,15 @@ router.put("/update/:userId", verifyToken, upload.single('profilePicture'), upda
 
 //update user profile
 router.put("/updateProfile/:userId", verifyToken, upload.single('profilePicture'), uploadProfilePictureController)
+
+//-------------------admin route----------------------//
+//get all user for admin
+router.get("/admin/all-user", verifyToken, getAllUserForAdmin)
+
+//get single user for admin
+router.get("/admin/user/:id", verifyToken, getSingleUserForAdmin)
+
+//update user by admin
+router.put("/admin/user/:id", verifyToken, updateUserByADmin)
 
 module.exports = router;

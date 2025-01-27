@@ -476,6 +476,98 @@ const getCaseRequestByIdController = async (req, res, next) => {
     }
 };
 
+//---------------------admin api controller--------------------//
+//get all case req by admin
+const getAllCasesRequestControllerByAdmin = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+
+        if (req.user.role !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Only admins can access this resource.",
+            });
+        }
+        // Extract query parameters
+        const { page = 1, limit = 10, status, isAccept, isReject } = req.query;
+
+        // Initialize filter object
+        const filter = { isDelete: false, isTrash: false };
+
+        // Add filtering conditions based on query parameters
+        if (status) filter.status = status;
+        if (typeof isAccept !== "undefined") filter.isAccept = isAccept === "true"; // Convert to boolean
+        if (typeof isReject !== "undefined") filter.isReject = isReject === "true"; // Convert to boolean
+
+        // Calculate pagination values
+        const skip = (page - 1) * limit;
+
+        // Fetch cases with filtering, sorting, pagination, and population
+        const cases = await CaseRequest.find(filter)
+            .sort({ createdAt: -1 }) // Sort by creation date in descending order
+            .skip(skip) // Skip for pagination
+            .limit(Number(limit)) // Limit number of results per page
+            .populate("requestBy", "firstName lastName workTitle _id profilePicture email")
+            .populate("case")
+            .populate("receivedBy", "firstName lastName workTitle ratings profilePicture _id email");
+
+        // Count total cases matching the filter
+        const totalCases = await CaseRequest.countDocuments(filter);
+
+        if (!cases || cases.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No case requests found",
+            });
+        }
+
+        // Return the data along with pagination meta info
+        return res.status(200).json({
+            status: "success",
+            message: "All case requests retrieved successfully",
+            data: cases,
+            meta: {
+                totalCases,
+                totalPages: Math.ceil(totalCases / limit),
+                currentPage: Number(page),
+                limit: Number(limit),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+//get single case req by admin
+const getSingleCaseReqByAdmin = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId;
+
+        if (req.user.role !== "admin") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Only admins can access this resource.",
+            });
+        }
+
+        const caseData = await CaseRequest.findById(id,).populate("requestBy", "firstName lastName workTitle _id profilePicture email")
+            .populate("case").populate("receivedBy", "firstName lastName workTitle ratings profilePicture _id email");
+
+
+        if (!caseData || caseData.isDelete || caseData.isTrash) {
+            return res.status(404).json({
+                status: "404",
+                message: "your following case id not in the database please provide the valid or existing id",
+            });
+        }
+
+        return res.status(200).json({ message: "single case request get successfully", data: caseData });
+    } catch (error) {
+        next(error);
+    }
+};
+
 
 module.exports = {
     createCaseRequest,
@@ -486,5 +578,7 @@ module.exports = {
     getAllCasesRequestToUser,
     getAllAcceptCasesRequestToLawyer,
     getAllCasesStatusFromLawyer,
-    updateCaseByLawyer
+    updateCaseByLawyer,
+    getAllCasesRequestControllerByAdmin,
+    getSingleCaseReqByAdmin,
 };
