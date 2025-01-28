@@ -380,14 +380,23 @@ const getAllCasesRequestToUser = async (req, res, next) => {
             });
         }
 
+        // Get the 'isAccept' query parameter (true or false)
+        // const isAccept = req.query.isAccept === 'true'; // Convert 'true'/'false' string to boolean
+
+        const { isAccept } = req.query;
 
         // Build the query dynamically
         const query = { requestBy: userId, isDelete: false, isTrash: false };
+        if (isAccept !== undefined) {
+            query.isAccept = isAccept === "true"; // Convert string "true"/"false" to boolean
+        }
 
         // Fetch cases based on the query
-        const cases = await CaseRequest.find(query).sort({ updatedAt: -1 }).populate("requestBy", "firstName lastName workTitle _id profilePicture email")
-            .populate("case").populate("receivedBy", "firstName lastName workTitle ratings profilePicture _id email");
-
+        const cases = await CaseRequest.find(query)
+            .sort({ updatedAt: -1 })
+            .populate("requestBy", "firstName lastName workTitle _id profilePicture email")
+            .populate("case")
+            .populate("receivedBy", "-password");
 
         if (!cases || cases.length === 0) {
             return res.status(404).json({
@@ -416,6 +425,8 @@ const getAllCasesRequestToUser = async (req, res, next) => {
         next(error);
     }
 };
+
+
 
 // Get all cases request
 const getAllCasesRequestController = async (req, res, next) => {
