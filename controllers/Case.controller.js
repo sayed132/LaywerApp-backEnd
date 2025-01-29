@@ -1,31 +1,74 @@
 const { CustomError } = require("../middlewares/CustomError");
 const Case = require("../models/Case.model");
+const Document = require("../models/Document.model");
 const Notification = require("../models/Notification.model");
 const Reminder = require("../models/Reminder.model");
 
 // Create a new case
+// const createCase = async (req, res, next) => {
+//     try {
+
+//         const userId = req.user.userId;
+
+//         if (!userId) {
+//             return res.status(404).json({
+//                 status: "error",
+//                 message: "your token expired or you are not login person, please login and try again",
+//             });
+//         }
+
+//         const updateData = { ...req.body, createdBy: userId };
+
+//         const newCase = new Case(updateData);
+//         await newCase.save();
+
+//         return res.status(201).json({ message: "Case created successfully", data: newCase });
+//     } catch (error) {
+//         next(error);
+//     }
+// };
 const createCase = async (req, res, next) => {
     try {
-
         const userId = req.user.userId;
 
         if (!userId) {
             return res.status(404).json({
                 status: "error",
-                message: "your token expired or you are not login person, please login and try again",
+                message: "Your token expired or you are not logged in. Please login and try again.",
             });
         }
 
-        const updateData = { ...req.body, createdBy: userId };
+        // Extract caseFiles if provided
+        // const { caseFiles } = req.body;
 
-        const newCase = new Case(updateData);
+        // Create a new case
+        const newCase = new Case({ ...req.body, createdBy: userId });
         await newCase.save();
+
+        // const { caseFiles } = req.body;
+
+        // Check if caseFiles exist before processing
+        if (newCase.caseFiles && newCase.caseFiles.length > 0) {
+            const documents = newCase.caseFiles.map((file) => {
+                const fileExt = file.path.split('.').pop(); // Extract file extension
+                return new Document({
+                    user: userId,
+                    case: newCase._id,
+                    filePath: file.path,
+                    fileExt: fileExt,
+                });
+            });
+
+            // Save all documents in one go
+            await Document.insertMany(documents);
+        }
 
         return res.status(201).json({ message: "Case created successfully", data: newCase });
     } catch (error) {
         next(error);
     }
 };
+
 
 // Update an existing case
 const updateCaseController = async (req, res, next) => {
