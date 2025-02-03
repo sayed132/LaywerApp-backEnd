@@ -201,6 +201,66 @@ const getAllTrashCaseTypesController = async (req, res, next) => {
 };
 
 
+// Get all cases type
+const getAllCaseTypesControllerForAdmin = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                status: "error",
+                message: "Your token expired or you are not logged in. Please log in and try again.",
+            });
+        }
+
+        // Extract pagination and query parameters
+        let { page = 1, limit = 10, typeName } = req.query;
+        page = parseInt(page);
+        limit = parseInt(limit);
+
+        // Define the filter object
+        const filter = { isDeleted: false, isTrash: false };
+        if (typeName) {
+            filter.typeName = { $regex: typeName, $options: "i" }; // Case-insensitive search
+        }
+
+        // Calculate skip and limit for pagination
+        const skip = (page - 1) * limit;
+
+        // Fetch case types with filters, sorting, and pagination
+        const caseTypes = await CaseType.find(filter)
+            .sort({ updatedAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        // Count the total number of documents that match the filter
+        const totalCaseTypes = await CaseType.countDocuments(filter);
+
+        if (!caseTypes || caseTypes.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No case types found",
+            });
+        }
+
+        // Return the paginated data and meta information
+        return res.status(200).json({
+            status: "success",
+            message: "All case types retrieved successfully",
+            data: caseTypes,
+            meta: {
+                totalCaseTypes,
+                totalPages: Math.ceil(totalCaseTypes / limit),
+                currentPage: Number(page),
+                limit: Number(limit),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 module.exports = {
     createCaseType,
     updateCaseTypeController,
@@ -208,5 +268,6 @@ module.exports = {
     getCaseTypeById,
     softDeleteCaseTypeController,
     restoreCaseTypeController,
-    getAllTrashCaseTypesController
+    getAllTrashCaseTypesController,
+    getAllCaseTypesControllerForAdmin
 };

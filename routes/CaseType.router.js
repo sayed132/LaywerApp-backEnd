@@ -1,6 +1,6 @@
 const express = require("express");
 const verifyToken = require("../middlewares/verifyToken");
-const { createCaseType, updateCaseTypeController, restoreCaseTypeController, softDeleteCaseTypeController, getAllCaseTypesController, getAllTrashCaseTypesController } = require("../controllers/CaseType.controller");
+const { createCaseType, updateCaseTypeController, restoreCaseTypeController, softDeleteCaseTypeController, getAllCaseTypesController, getAllTrashCaseTypesController, getAllCaseTypesControllerForAdmin } = require("../controllers/CaseType.controller");
 
 const router = express.Router();
 
@@ -22,5 +22,7 @@ router.get("/all", verifyToken, getAllCaseTypesController)
 //get all trash case
 router.get("/all-trash", verifyToken, getAllTrashCaseTypesController)
 
+//admin
+router.get("/admin/all-case-types", verifyToken, getAllCaseTypesControllerForAdmin)
 
 module.exports = router;
