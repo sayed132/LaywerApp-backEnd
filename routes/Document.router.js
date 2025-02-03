@@ -1,7 +1,9 @@
 const express = require("express");
 const { createDocument, getAllDocuments, getDocumentById, updateDocument, softDeleteDocument, createDocumentByLawyer,
     updateDocumentByLawyer,
-    softDeleteDocumentByLawyer } = require("../controllers/Document.controller");
+    softDeleteDocumentByLawyer, 
+    getAllDocumentsForAdmin,
+    getDocumentByIdForAdmin} = require("../controllers/Document.controller");
 const verifyToken = require("../middlewares/verifyToken");
 
 const router = express.Router();
@@ -29,6 +31,13 @@ router.delete("/delete/:id", verifyToken, softDeleteDocument);
 
 //delete document by lawyer
 router.delete("/delete-by-lawyer/:id", verifyToken, softDeleteDocumentByLawyer);
+
+//-----------------------------------admin------------------------------//
+//get all document
+router.get("/admin/all-documents", verifyToken, getAllDocumentsForAdmin);
+
+//get single document by id
+router.get("/admin/doc/:id", verifyToken, getDocumentByIdForAdmin);
 
 
 module.exports = router;

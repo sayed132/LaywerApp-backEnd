@@ -440,6 +440,118 @@ const softDeleteDocumentByLawyer = async (req, res, next) => {
     }
 };
 
+//----------------------------admin data---------------------------//
+//get all document with grouped
+const getAllDocumentsForAdmin = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                status: "error",
+                message: "Unauthorized access. Please log in and try again.",
+            });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "User not found.",
+            });
+        }
+
+        const { search, page = 1, limit = 10 } = req.query;
+
+        let filter = { isDelete: false };
+
+        if (search) {
+            filter.filePath = { $regex: search, $options: 'i' };
+        }
+
+        const skip = (page - 1) * limit; // Calculate the number of documents to skip
+
+
+        // Fetch all documents
+        const documents = await Document.find(filter).populate("case").populate("user", "name email _id profilePicture").populate("lawyer", "name email _id profilePicture").sort({ updatedAt: -1 }).skip(skip).limit(Number(limit));
+
+        const groupedDocuments = documents.reduce((acc, doc) => {
+            const caseId = doc.case._id.toString();
+
+            if (!acc[caseId]) {
+                acc[caseId] = {
+                    caseDetails: doc.case,
+                    documents: [],
+                };
+            }
+
+            acc[caseId].documents.push(doc);
+
+            return acc;
+        }, {});
+
+        const result = Object.values(groupedDocuments);
+        const totalDocuments = await Document.countDocuments(filter);
+
+        return res.status(200).json({
+            message: "Fetched documents successfully",
+            data: result,
+            meta: {
+                totalDocuments,
+                totalPages: Math.ceil(totalDocuments / limit),
+                currentPage: Number(page),
+                limit: Number(limit),
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Get Single Document by ID
+const getDocumentByIdForAdmin = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId; // Logged-in user's ID
+
+        if (!userId) {
+            return res.status(401).json({
+                status: "error",
+                message: "Unauthorized access. Please log in and try again.",
+            });
+        }
+
+        // Find the user and check their role
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                status: "error",
+                message: "User not found.",
+            });
+        }
+
+        let filter = { _id: id, isDelete: false };
+
+        // Fetch the document with the modified filter
+        const document = await Document.findOne(filter)
+            .populate("user", "name email _id profilePicture").populate("lawyer", "name email _id profilePicture");
+
+        if (!document) {
+            return res.status(404).json({
+                status: "error",
+                message: "Document not found or access denied.",
+            });
+        }
+
+        return res.status(200).json({
+            message: "Document fetched successfully",
+            data: document,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 
 module.exports = {
     createDocument,
@@ -449,5 +561,7 @@ module.exports = {
     softDeleteDocument,
     createDocumentByLawyer,
     updateDocumentByLawyer,
-    softDeleteDocumentByLawyer
+    softDeleteDocumentByLawyer,
+    getAllDocumentsForAdmin,
+    getDocumentByIdForAdmin
 };
