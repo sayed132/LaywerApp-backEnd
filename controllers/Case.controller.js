@@ -5,28 +5,6 @@ const Notification = require("../models/Notification.model");
 const Reminder = require("../models/Reminder.model");
 
 // Create a new case
-// const createCase = async (req, res, next) => {
-//     try {
-
-//         const userId = req.user.userId;
-
-//         if (!userId) {
-//             return res.status(404).json({
-//                 status: "error",
-//                 message: "your token expired or you are not login person, please login and try again",
-//             });
-//         }
-
-//         const updateData = { ...req.body, createdBy: userId };
-
-//         const newCase = new Case(updateData);
-//         await newCase.save();
-
-//         return res.status(201).json({ message: "Case created successfully", data: newCase });
-//     } catch (error) {
-//         next(error);
-//     }
-// };
 const createCase = async (req, res, next) => {
     try {
         const userId = req.user.userId;
@@ -203,7 +181,7 @@ const getAllCasesFromUser = async (req, res, next) => {
         }
 
         // Fetch cases based on the query
-        const cases = await Case.find(query).sort({ updatedAt: -1 });
+        const cases = await Case.find(query).sort({ updatedAt: -1 }).populate("createdBy", "-password");
 
         if (!cases || cases.length === 0) {
             return res.status(404).json({
@@ -248,7 +226,7 @@ const getAllCasesStatusFromUser = async (req, res, next) => {
 
 
         // Fetch all cases for the user
-        const cases = await Case.find({ createdBy: userId, isDelete: false, isTrash: false });
+        const cases = await Case.find({ createdBy: userId, isDelete: false, isTrash: false }).populate("createdBy", "-password");
 
         if (!cases || cases.length === 0) {
             return res.status(404).json({
@@ -293,7 +271,7 @@ const getCaseByIdController = async (req, res, next) => {
             });
         }
 
-        const caseData = await Case.findById(caseId,);
+        const caseData = await Case.findById(caseId).populate("createdBy", "-password");
 
         if (!caseData || caseData.isDelete || caseData.isTrash) {
             return res.status(404).json({
@@ -372,7 +350,7 @@ const getAllTrashCasesController = async (req, res, next) => {
             });
         }
 
-        const cases = await Case.find({ isDelete: true, isTrash: true });
+        const cases = await Case.find({ isDelete: true, isTrash: true }).populate("createdBy", "-password");
 
         if (!cases || cases.length === 0) {
             return res.status(404).json({
@@ -518,7 +496,7 @@ const getAllCasesController = async (req, res, next) => {
         const cases = await Case.find(filter)
             .sort({ createdAt: -1 }) // Sort by createdAt in descending order
             .skip(skip) // Skip records for pagination
-            .limit(Number(limit)); // Limit number of records per page
+            .limit(Number(limit)).populate("createdBy", "-password"); // Limit number of records per page
 
         // Count the total number of documents that match the filter
         const totalCases = await Case.countDocuments(filter);
