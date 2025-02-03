@@ -36,7 +36,7 @@ router.get("/:caseId", verifyToken, getCaseByIdController)
 
 //--------------------admin route-------------------------//
 //get all case
-router.get("/all", verifyToken, getAllCasesController)
+router.get("/admin/all-case", verifyToken, getAllCasesController)
 
 //update single case by admin
 router.put("/admin/update/:caseId", verifyToken, updateCaseControllerByAdmin)
